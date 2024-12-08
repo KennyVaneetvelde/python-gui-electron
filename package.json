@@ -3,7 +3,9 @@
     "version": "0.1.0",
     "main": "./electron/main.js",
     "scripts": {
-        "start": "electron ."
+        "prestart": "python -m pip install -r python/requirements.txt",
+        "start": "electron .",
+        "install-deps": "python -m pip install -r python/requirements.txt"
     },
     "devDependencies": {
         "electron": "^23.3.0"

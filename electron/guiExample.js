@@ -1,89 +1,89 @@
-const { exec } = require("child_process");
-const nodeConsole = require("console");
-const { ipcRenderer } = require("electron");
+const updatePlot = (data) => {
+  const trace = {
+    x: data.x,
+    y: data.y,
+    type: 'scatter',
+    mode: 'lines',
+    line: { color: '#2196f3', width: 2 }
+  };
 
-const terminalConsole = new nodeConsole.Console(process.stdout, process.stderr);
-let child;
+  const layout = {
+    title: `${data.type.charAt(0).toUpperCase() + data.type.slice(1)} Wave`,
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: { color: '#666' },
+    xaxis: {
+      title: 'Time',
+      gridcolor: '#ddd',
+      zerolinecolor: '#666'
+    },
+    yaxis: {
+      title: 'Amplitude',
+      gridcolor: '#ddd',
+      zerolinecolor: '#666'
+    }
+  };
 
-ipcRenderer.send("run-command", "ls");
-ipcRenderer.on("run-command-result", (event, result) => {
-  if (result.error) {
-    console.error("Error:", result.error);
-  } else {
-    console.log("Output:", result.output);
+  Plotly.newPlot('signal-plot', [trace], layout);
+};
+
+const updateParameters = () => {
+  const frequency = parseFloat(document.getElementById('frequency').value);
+  const amplitude = parseFloat(document.getElementById('amplitude').value);
+  const phase = parseFloat(document.getElementById('phase').value);
+
+  document.getElementById('frequency-value').textContent = frequency.toFixed(1);
+  document.getElementById('amplitude-value').textContent = amplitude.toFixed(1);
+  document.getElementById('phase-value').textContent = phase.toFixed(1);
+
+  window.electronAPI.sendToPython(
+    JSON.stringify({
+      command: 'parameters',
+      args: { frequency, amplitude, phase }
+    })
+  );
+};
+
+const generateSignal = () => {
+  const type = document.getElementById('wave-type').value;
+  window.electronAPI.sendToPython(
+    JSON.stringify({
+      command: 'generate',
+      args: { type }
+    })
+  );
+};
+
+// Handle Python process output
+window.electronAPI.onPythonOutput((data) => {
+  try {
+    const response = JSON.parse(data.replace('Python    : ', ''));
+
+    if (response.type === 'signal') {
+      updatePlot(response.data);
+    } else if (response.type === 'status') {
+      console.log('Python:', response.message);
+    } else if (response.type === 'error') {
+      console.error('Python error:', response.message);
+    }
+  } catch (e) {
+    console.error('Error parsing Python output:', e);
   }
 });
 
-const printBoth = (str) => {
-  console.log(`Javascript: ${str}`);
-  terminalConsole.log(`Javascript: ${str}`);
-};
+// Start the Python process immediately when the page loads
+document.addEventListener('DOMContentLoaded', async () => {
+  // Start Python process
+  await window.electronAPI.startPython();
 
-const sendToProgram = (str) => {
-  child.stdin.write(str);
-  child.stdout.on("data", (data) => {
-    printBoth(
-      `Following data has been piped from python program: ${data.toString(
-        "utf8"
-      )}`
-    );
-  });
-};
+  // Add event listeners for controls
+  document.getElementById('wave-type').addEventListener('change', generateSignal);
+  document.getElementById('frequency').addEventListener('input', updateParameters);
+  document.getElementById('amplitude').addEventListener('input', updateParameters);
+  document.getElementById('phase').addEventListener('input', updateParameters);
+});
 
-const startCodeFunction = () => {
-  printBoth("Initiating program");
-
-  child = exec("python -i ./python/pythonExample.py", (error) => {
-    if (error) {
-      printBoth(`exec error: ${error}`);
-    }
-  });
-
-  child.stdout.on("data", (data) => {
-    printBoth(
-      `Following data has been piped from python program: ${data.toString(
-        "utf8"
-      )}`
-    );
-  });
-};
-
-const sendCodeFunction = () => {
-  const stringToSend = document.getElementById("string_to_send").value;
-  printBoth(`Sending "${stringToSend}" to program`);
-  sendToProgram(stringToSend);
-};
-
-const stopCodeFunction = () => {
-  printBoth("Terminated program");
-  sendToProgram("terminate");
-  child.stdin.end();
-};
-
-const openFileFunctionSync = () => {
-  printBoth("From guiExample.js sending a request to main.js via ipc");
-  ipcRenderer.send("open_json_file_sync");
-};
-
-const openFileFunctionAsync = () => {
-  printBoth("From guiExample.js sending a request to main.js via ipc");
-  ipcRenderer.send("open_json_file_async");
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-  document
-    .getElementById("start_code")
-    .addEventListener("click", startCodeFunction);
-  document
-    .getElementById("send_code")
-    .addEventListener("click", sendCodeFunction);
-  document
-    .getElementById("stop_code")
-    .addEventListener("click", stopCodeFunction);
-  document
-    .getElementById("open_file_sync")
-    .addEventListener("click", openFileFunctionSync);
-  document
-    .getElementById("open_file_async")
-    .addEventListener("click", openFileFunctionAsync);
+// Clean up when the window is closed
+window.addEventListener('beforeunload', () => {
+  window.electronAPI.cleanup();
 });
