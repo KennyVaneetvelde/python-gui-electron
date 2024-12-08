@@ -4,26 +4,69 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.plot.ly; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://cdn.plot.ly"
     />
-    <title>Electron-Python Interaction</title>
+    <title>Signal Generator</title>
     <link rel="stylesheet" href="guiExample.css" />
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
   </head>
 
   <body>
     <div class="container">
-      <button id="start_code">Launch program</button>
-      <input
-        id="string_to_send"
-        type="text"
-        placeholder="Enter the string to send to program"
-      />
-      <button id="send_code">Interact with program</button>
-      <button id="stop_code">Terminate program</button>
-      <hr>
-      <button id="open_file_sync">Open a file sync</button>
-      <button id="open_file_async">Open a file async</button>
-      <p><a href="https://github.com/keybraker">Made by Keybraker</a></p>
+      <h1>Signal Generator</h1>
+
+      <div class="control-group">
+        <div id="signal-plot"></div>
+      </div>
+
+      <div class="control-group">
+        <select id="wave-type">
+          <option value="sine">Sine Wave</option>
+          <option value="square">Square Wave</option>
+          <option value="sawtooth">Sawtooth Wave</option>
+          <option value="noise">Random Noise</option>
+        </select>
+
+        <div class="parameter-group">
+          <label for="frequency">Frequency:</label>
+          <input
+            id="frequency"
+            type="range"
+            min="0.1"
+            max="5"
+            step="0.1"
+            value="1.0"
+          />
+          <span id="frequency-value">1.0</span>
+        </div>
+
+        <div class="parameter-group">
+          <label for="amplitude">Amplitude:</label>
+          <input
+            id="amplitude"
+            type="range"
+            min="0.1"
+            max="2"
+            step="0.1"
+            value="1.0"
+          />
+          <span id="amplitude-value">1.0</span>
+        </div>
+
+        <div class="parameter-group">
+          <label for="phase">Phase:</label>
+          <input
+            id="phase"
+            type="range"
+            min="0"
+            max="6.28"
+            step="0.1"
+            value="0"
+          />
+          <span id="phase-value">0.0</span>
+        </div>
+      </div>
     </div>
+    <script src="guiExample.js"></script>
   </body>
 </html>
