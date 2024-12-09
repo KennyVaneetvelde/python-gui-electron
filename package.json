@@ -1,13 +1,63 @@
 {
-    "name": "python-electron-gui",
-    "version": "0.1.0",
-    "main": "./electron/main.js",
-    "scripts": {
-        "prestart": "python -m pip install -r python/requirements.txt",
-        "start": "electron .",
-        "install-deps": "python -m pip install -r python/requirements.txt"
+  "name": "signal-generator",
+  "version": "1.0.0",
+  "description": "Signal Generator with Electron, SvelteKit, and Python",
+  "main": "main.js",
+  "scripts": {
+    "create-venv": "python -m venv python/venv",
+    "install-deps:python": "cd python && .\\venv\\Scripts\\python -m pip install -r requirements.txt",
+    "install-deps:frontend": "cd frontend && npm install",
+    "install-deps": "npm install && npm run install-deps:frontend && npm run create-venv && npm run install-deps:python",
+    "dev": "cross-env NODE_ENV=development electron .",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "cross-env NODE_ENV=production electron .",
+    "build": "npm run build:frontend",
+    "pack": "electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.signal-generator.app",
+    "productName": "Signal Generator",
+    "asar": true,
+    "asarUnpack": [
+      "python/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build-resources"
     },
-    "devDependencies": {
-        "electron": "^23.3.0"
+    "files": [
+      "main.js",
+      "preload.js",
+      "frontend/build/**/*",
+      "python/**/*",
+      "node_modules/**/*",
+      "!**/venv/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "python",
+        "to": "app.asar.unpacked/python",
+        "filter": [
+          "requirements.txt",
+          "server.py",
+          "src/**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "portable"
     }
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^23.3.0",
+    "electron-builder": "^24.9.1",
+    "rimraf": "^6.0.1"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
 }
