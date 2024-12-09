@@ -69,3 +69,9 @@ ts-gen
 
 # Used to accelerate builds after sync
 patches/mtime-cache.json
+
+# Python virtual environment
+python/venv/
+__pycache__/
+*.py[cod]
+*$py.class
