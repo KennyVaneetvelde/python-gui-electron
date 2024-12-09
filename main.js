@@ -139,8 +139,8 @@ function startStaticServer(port) {
   });
 }
 
-// Function to create a loading HTML content
-function getLoadingHTML() {
+// Function to create a splash screen HTML content
+function getSplashScreenHTML() {
   return `
     <!DOCTYPE html>
     <html>
@@ -154,114 +154,106 @@ function getLoadingHTML() {
             min-height: 100vh;
             background: #1a1a1a;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
           }
-          .container {
+          .splash-container {
             text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 24px;
+            gap: 32px;
+            animation: fadeIn 0.5s ease-out;
           }
-          .spinner {
-            width: 56px;
-            height: 56px;
-            display: grid;
-            border: 4px solid #0000;
-            border-radius: 50%;
-            border-right-color: #2196f3;
-            animation: spinner-a4dj62 1s infinite linear;
+          .app-icon {
+            width: 128px;
+            height: 128px;
+            background: #2196f3;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px rgba(33, 150, 243, 0.2);
           }
-          .spinner::before,
-          .spinner::after {
-            content: "";
-            grid-area: 1/1;
-            margin: 2px;
-            border: inherit;
-            border-radius: 50%;
-            animation: spinner-a4dj62 2s infinite;
+          .app-icon svg {
+            width: 64px;
+            height: 64px;
+            fill: white;
           }
-          .spinner::after {
-            margin: 8px;
-            animation-duration: 3s;
-          }
-          @keyframes spinner-a4dj62 {
-            100% {
-              transform: rotate(1turn);
-            }
-          }
-          .loading-text {
+          .app-name {
             color: #fff;
-            font-size: 16px;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-            opacity: 0.9;
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin: 0;
           }
-          @keyframes pulse {
-            0%, 100% {
-              opacity: 0.9;
-            }
-            50% {
-              opacity: 0.5;
-            }
+          .startup-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 400;
+            margin: 0;
+          }
+          .progress-bar {
+            width: 200px;
+            height: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+          }
+          .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 40%;
+            height: 100%;
+            background: #2196f3;
+            animation: loading 1.5s infinite ease-in-out;
+            border-radius: 3px;
+          }
+          @keyframes loading {
+            0% { left: -40%; }
+            100% { left: 100%; }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
           }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="spinner"></div>
-          <div class="loading-text">Starting development server...</div>
+        <div class="splash-container">
+          <div class="app-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h10v2H7z"/>
+            </svg>
+          </div>
+          <h1 class="app-name">Signal Generator</h1>
+          <div class="progress-bar"></div>
+          <p class="startup-text">Initializing application...</p>
         </div>
       </body>
     </html>
   `;
 }
 
-// Function to check if Vite server is ready
-async function checkViteServer(port) {
-  try {
-    const response = await fetch(`http://localhost:${port}`);
-    return response.status === 200;
-  } catch (error) {
-    return false;
-  }
-}
+let splashWindow = null;
 
-// Function to wait for Vite server
-async function waitForViteServer(port, maxAttempts = 50) {
-  const startTime = Date.now();
-  const minLoadTime = 10000; // 10 seconds minimum loading time
-
-  for (let i = 0; i < maxAttempts; i++) {
-    try {
-      const isReady = await checkViteServer(port);
-      if (isReady) {
-        // Calculate remaining time to meet minimum load time
-        const elapsed = Date.now() - startTime;
-        const remainingTime = Math.max(0, minLoadTime - elapsed);
-        if (remainingTime > 0) {
-          await new Promise(resolve => setTimeout(resolve, remainingTime));
-        }
-        return true;
-      }
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Check if port has changed (Vite automatically increments port if taken)
-      try {
-        const response = await fetch('http://localhost:' + (port + 1));
-        if (response.status === 200) {
-          console.log(`Vite server found on port ${port + 1}`);
-          VITE_PORT = port + 1;
-          return true;
-        }
-      } catch (e) {
-        // Ignore error, continue checking original port
-      }
-    } catch (error) {
-      console.log(`Attempt ${i + 1}/${maxAttempts} to connect to Vite server...`);
+function createSplashScreen() {
+  splashWindow = new BrowserWindow({
+    width: 400,
+    height: 400,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
     }
-  }
-  throw new Error('Vite server failed to start');
+  });
+
+  splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getSplashScreenHTML())}`);
+  return splashWindow;
 }
 
 function createWindow() {
@@ -273,8 +265,19 @@ function createWindow() {
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
-      allowRunningInsecureContent: false
+      allowRunningInsecureContent: false,
+      devTools: process.env.NODE_ENV === 'development'
+    },
+    show: false
+  });
+
+  // Show window when ready to prevent flickering
+  mainWindow.once('ready-to-show', () => {
+    if (splashWindow) {
+      splashWindow.close();
+      splashWindow = null;
     }
+    mainWindow.show();
   });
 
   // Pass the API port to the renderer process
@@ -300,7 +303,6 @@ function createWindow() {
   } else {
     // In production, load from our static server
     mainWindow.loadURL(`http://127.0.0.1:${STATIC_PORT}`);
-    mainWindow.webContents.openDevTools(); // Keep for debugging
   }
 
   return mainWindow;
@@ -518,6 +520,9 @@ function setupExitHandlers() {
 
 app.whenReady().then(async () => {
   try {
+    // Show splash screen immediately
+    createSplashScreen();
+
     setupExitHandlers();
 
     // Ensure resources are available
@@ -550,6 +555,9 @@ app.whenReady().then(async () => {
     createWindow();
   } catch (error) {
     console.error('Failed to start application:', error);
+    if (splashWindow) {
+      splashWindow.close();
+    }
     process.exit(1);
   }
 });
