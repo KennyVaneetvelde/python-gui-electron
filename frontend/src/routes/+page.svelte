@@ -1,5 +1,5 @@
 <script lang="ts">
-	import MarkdownEditor from '$lib/components/MarkdownEditor.svelte';
+	import MarkdownEditor from '$lib/components/editor/markdown/MarkdownEditor.svelte';
 	import { markdownContent } from '$lib/stores/markdown';
 </script>
 

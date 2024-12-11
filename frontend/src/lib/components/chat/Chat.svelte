@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import ChatMessage from './ChatMessage.svelte';
-	import ChatInput from './ChatInput.svelte';
+	import ChatMessage from './messages/ChatMessage.svelte';
+	import ChatInput from './input/ChatInput.svelte';
+	import ChatContainer from './container/ChatContainer.svelte';
+	import ChatHeader from './header/ChatHeader.svelte';
+	import ChatFooter from './footer/ChatFooter.svelte';
 	import { setupWebSocket, wsStore, wsStatus } from '$lib/stores';
 
 	let messages: Array<{

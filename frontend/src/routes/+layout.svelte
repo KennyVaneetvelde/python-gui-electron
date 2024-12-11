@@ -5,7 +5,7 @@
 	import Sun from 'lucide-svelte/icons/sun';
 	import Moon from 'lucide-svelte/icons/moon';
 	import { toggleMode } from 'mode-watcher';
-	import Chat from '$lib/components/Chat.svelte';
+	import Chat from '$lib/components/chat/Chat.svelte';
 </script>
 
 <ModeWatcher />

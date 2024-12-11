@@ -5,7 +5,7 @@
 	import Eye from 'lucide-svelte/icons/eye';
 	import { fade } from 'svelte/transition';
 	import { createEventDispatcher } from 'svelte';
-	import CodeMirrorEditor from './CodeMirrorEditor.svelte';
+	import CodeMirrorEditor from '../code/CodeMirrorEditor.svelte';
 	import MarkdownRenderer from './MarkdownRenderer.svelte';
 
 	const dispatch = createEventDispatcher<{
