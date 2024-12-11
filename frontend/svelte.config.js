@@ -12,7 +12,10 @@ const config = {
 			relative: true,
 			assets: ''
 		},
-		appDir: '_app'
+		appDir: '_app',
+		alias: {
+			'@/*': './src/lib/*'
+		}
 	},
 	preprocess: vitePreprocess()
 };

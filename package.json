@@ -7,21 +7,24 @@
     "create-venv": "python -m venv python/venv",
     "install-deps:python": "cd python && .\\venv\\Scripts\\python -m pip install -r requirements.txt",
     "install-deps:frontend": "cd frontend && npm install",
-    "install-deps": "npm install && npm run install-deps:frontend && npm run create-venv && npm run install-deps:python",
+    "install-deps": "npm install && npm run install-deps:frontend",
+    "postinstall": "npm run create-venv && npm run install-deps:python",
     "dev": "cross-env NODE_ENV=development electron .",
     "build:frontend": "cd frontend && npm run build",
     "start": "cross-env NODE_ENV=production electron .",
     "build": "npm run build:frontend",
     "pack": "electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
   },
   "build": {
     "appId": "com.signal-generator.app",
     "productName": "Signal Generator",
     "asar": true,
     "asarUnpack": [
-      "python/**/*",
-      "node_modules/**/*"
+      "python/**/*"
     ],
     "directories": {
       "output": "dist",
@@ -31,8 +34,9 @@
       "main.js",
       "preload.js",
       "frontend/build/**/*",
-      "python/**/*",
-      "node_modules/**/*",
+      "python/requirements.txt",
+      "python/server.py",
+      "python/src/**/*",
       "!**/venv/**",
       "package.json"
     ],
@@ -48,16 +52,57 @@
       }
     ],
     "win": {
-      "target": "portable"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Signal Generator",
+      "include": "build-resources/installer.nsh"
     }
   },
+  "author": "",
+  "license": "MIT",
   "devDependencies": {
     "cross-env": "^7.0.3",
     "electron": "^23.3.0",
     "electron-builder": "^24.9.1",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "@codemirror/commands": "^6.7.1",
+    "@codemirror/lang-markdown": "^6.3.1",
+    "@codemirror/language": "^6.10.6",
+    "@codemirror/language-data": "^6.5.1",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.35.3",
+    "@lezer/highlight": "^1.2.1",
+    "@shikijs/rehype": "^1.24.2",
+    "express": "^4.21.2",
+    "rehype-katex": "^7.0.1",
+    "rehype-stringify": "^10.0.1",
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.0",
+    "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.1",
+    "unified": "^11.0.5"
   }
 }

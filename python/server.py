@@ -1,8 +1,13 @@
 import uvicorn
 import sys
+import os
+from dotenv import load_dotenv
 from src.api import app
 
 if __name__ == "__main__":
+    # Load environment variables from .env file
+    load_dotenv()
+
     # Get port from command line argument or use default
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
 

@@ -191,6 +191,7 @@ function getSplashScreenHTML() {
             font-size: 14px;
             font-weight: 400;
             margin: 0;
+            min-height: 1.2em;
           }
           .progress-bar {
             width: 200px;
@@ -230,11 +231,24 @@ function getSplashScreenHTML() {
           </div>
           <h1 class="app-name">Signal Generator</h1>
           <div class="progress-bar"></div>
-          <p class="startup-text">Initializing application...</p>
+          <p id="status" class="startup-text">Initializing application...</p>
         </div>
+        <script>
+          window.api = {
+            updateStatus: (text) => {
+              document.getElementById('status').textContent = text;
+            }
+          };
+        </script>
       </body>
     </html>
   `;
+}
+
+function updateSplashScreen(text) {
+  if (splashWindow && !splashWindow.isDestroyed()) {
+    splashWindow.webContents.executeJavaScript(`window.api.updateStatus("${text}")`);
+  }
 }
 
 let splashWindow = null;
@@ -256,6 +270,110 @@ function createSplashScreen() {
   return splashWindow;
 }
 
+// Function to create a loading HTML content
+function getLoadingHTML() {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          }
+          .container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+          }
+          .spinner {
+            width: 56px;
+            height: 56px;
+            display: grid;
+            border: 4px solid #0000;
+            border-radius: 50%;
+            border-right-color: #2196f3;
+            animation: spinner-a4dj62 1s infinite linear;
+          }
+          .spinner::before,
+          .spinner::after {
+            content: "";
+            grid-area: 1/1;
+            margin: 2px;
+            border: inherit;
+            border-radius: 50%;
+            animation: spinner-a4dj62 2s infinite;
+          }
+          .spinner::after {
+            margin: 8px;
+            animation-duration: 3s;
+          }
+          @keyframes spinner-a4dj62 {
+            100% {
+              transform: rotate(1turn);
+            }
+          }
+          .loading-text {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            opacity: 0.9;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+          }
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 0.9;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="spinner"></div>
+          <div class="loading-text">Preparing application interface...</div>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+// Function to check if Vite server is ready
+async function checkViteServer(port) {
+  try {
+    const response = await fetch(`http://localhost:${port}`);
+    return response.status === 200;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Function to wait for Vite server
+async function waitForViteServer(port, maxAttempts = 50) {
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const isReady = await checkViteServer(port);
+      if (isReady) {
+        return true;
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    } catch (error) {
+      console.log(`Attempt ${i + 1}/${maxAttempts} to connect to Vite server...`);
+    }
+  }
+  throw new Error('Vite server failed to start');
+}
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -268,13 +386,17 @@ function createWindow() {
       allowRunningInsecureContent: false,
       devTools: process.env.NODE_ENV === 'development'
     },
-    show: false
+    show: false,
+    backgroundColor: '#1a1a1a'  // Dark background color
   });
+
+  // Show loading screen immediately after creation
+  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getLoadingHTML())}`);
 
   // Show window when ready to prevent flickering
   mainWindow.once('ready-to-show', () => {
     if (splashWindow) {
-      splashWindow.close();
+      splashWindow.destroy();
       splashWindow = null;
     }
     mainWindow.show();
@@ -287,23 +409,33 @@ function createWindow() {
     `);
   });
 
-  // In development, show loading screen and wait for Vite
+  // In development, wait for Vite server and then load the app
   if (process.env.NODE_ENV === 'development') {
-    // Show loading screen
-    mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getLoadingHTML())}`);
-
-    // Wait for Vite server and then load the app
     waitForViteServer(VITE_PORT).then(() => {
       mainWindow.loadURL(`http://localhost:${VITE_PORT}`);
     }).catch((error) => {
       console.error('Failed to connect to Vite server:', error);
+      if (splashWindow) {
+        splashWindow.destroy();
+        splashWindow = null;
+      }
     });
 
     mainWindow.webContents.openDevTools();
   } else {
-    // In production, load from our static server
-    mainWindow.loadURL(`http://127.0.0.1:${STATIC_PORT}`);
+    // In production, wait a moment then load from our static server
+    setTimeout(() => {
+      mainWindow.loadURL(`http://127.0.0.1:${STATIC_PORT}`);
+    }, 100);
   }
+
+  // Handle window close
+  mainWindow.on('closed', () => {
+    if (splashWindow) {
+      splashWindow.destroy();
+      splashWindow = null;
+    }
+  });
 
   return mainWindow;
 }
@@ -522,19 +654,24 @@ app.whenReady().then(async () => {
   try {
     // Show splash screen immediately
     createSplashScreen();
+    updateSplashScreen("Starting application...");
 
     setupExitHandlers();
 
     // Ensure resources are available
+    updateSplashScreen("Checking application resources...");
     await ensureResources();
 
     // Kill any existing Python processes
+    updateSplashScreen("Cleaning up previous sessions...");
     await killExistingPythonProcesses();
 
     // Check and install Python dependencies
+    updateSplashScreen("Setting up backend services...");
     await checkPythonDependencies();
 
     // Find available ports
+    updateSplashScreen("Configuring network services...");
     API_PORT = await findAvailablePort(8000);
     STATIC_PORT = await findAvailablePort(3000);
     VITE_PORT = await findAvailablePort(5174);
@@ -542,21 +679,25 @@ app.whenReady().then(async () => {
     console.log(`Found available ports - API: ${API_PORT}, Static: ${STATIC_PORT}, Vite: ${VITE_PORT}`);
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('Starting development servers...');
+      updateSplashScreen("Preparing development environment...");
+      console.log('Starting development environment...');
       await startViteServer();
     }
 
     // Start both servers
+    updateSplashScreen("Starting backend services...");
     await startPythonServer(API_PORT);
+    updateSplashScreen("Initializing user interface...");
     startStaticServer(STATIC_PORT);
-    console.log('All servers started successfully');
+    console.log('All services started successfully');
 
+    updateSplashScreen("Loading application...");
     // Then create the window
     createWindow();
   } catch (error) {
     console.error('Failed to start application:', error);
     if (splashWindow) {
-      splashWindow.close();
+      splashWindow.destroy();
     }
     process.exit(1);
   }

@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { sveltekit } from '@sveltejs/kit/vite';
+import path from 'path';
 
 export default defineConfig({
 	plugins: [sveltekit()],
@@ -9,7 +10,12 @@ export default defineConfig({
 		outDir: 'build'
 	},
 	server: {
-		port: 5174,
-		strictPort: false
+			port: 5174,
+			strictPort: false
+	},
+	resolve: {
+		alias: {
+			$lib: path.resolve("./src/lib")
+		}
 	}
 });
