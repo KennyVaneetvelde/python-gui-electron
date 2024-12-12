@@ -4,6 +4,7 @@ import asyncio
 import os
 import instructor
 import openai
+import dotenv
 from pydantic import Field, BaseModel
 from atomic_agents.lib.components.system_prompt_generator import SystemPromptGenerator
 from atomic_agents.lib.components.agent_memory import AgentMemory
@@ -14,15 +15,15 @@ from atomic_agents.agents.base_agent import (
 )
 from atomic_agents.lib.base.base_io_schema import BaseIOSchema
 
+dotenv.load_dotenv()
+
 app = FastAPI()
 
 # Store active WebSocket connections
 active_connections: List[WebSocket] = []
 
 # API Key setup
-API_KEY = "dummy-key"
-if not API_KEY:
-    API_KEY = os.getenv("***REMOVED***")
+API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not API_KEY:
     raise ValueError("API key is not set")
